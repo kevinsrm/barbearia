@@ -29,4 +29,8 @@ class SiteController extends Controller
         $servicos = Servico::where('ativo', true)->get();
         return view('site.agendamento', compact('servicos'));
     }
+    public function u()
+    {
+        return view('site.sobre');
+    }
 }

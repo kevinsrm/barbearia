@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\SiteController::class, 'index'])->name('site.index');
+Route::get('/u', [App\Http\Controllers\SiteController::class, 'u'])->name('site.index');
 Route::get('/agendamento', [App\Http\Controllers\AgendamentoController::class, 'index'])->name('agendamento.index');
 Route::get('/servicos', [App\Http\Controllers\SiteController::class, 'servicos'])->name('site.servicos');
 Route::get('/sobre', [App\Http\Controllers\SiteController::class, 'sobre'])->name('site.sobre');
