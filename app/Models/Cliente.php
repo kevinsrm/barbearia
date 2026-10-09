@@ -2,36 +2,58 @@
 
 namespace App\Models;
 
-use App\Models\Pessoa;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Database\Factories\ClienteFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cliente extends Model
 {
-    use HasFactory;
-
     protected $table = 'clientes';
-    protected $fillable = [
-        'pessoa_id',
-        'codigo_cliente',
-        'pontuacao',
-        'status',
-        'observacoes',
-    ];
 
-    public function pessoa()
+    protected $fillable = ['pessoa_id', 'codigo_cliente', 'pontuacao', 'status', 'observacoes'];
+
+    protected function casts(): array
     {
-        return $this->belongsTo(Pessoa::class, 'pessoa_id');
+        return ['pontuacao' => 'integer'];
     }
-    
-    public function agendamentos()
+
+    public function pessoa(): BelongsTo
     {
-        return $this->hasMany(Agendamento::class, 'cliente_id');
+        return $this->belongsTo(Pessoa::class);
     }
-    
-    public function retornos()
+
+    public function agendamentos(): HasMany
     {
-        return $this->hasMany(ClienteRetorno::class, 'cliente_id');
+        return $this->hasMany(Agendamento::class);
+    }
+
+    public function vendas(): HasMany
+    {
+        return $this->hasMany(Venda::class);
+    }
+
+    public function contasReceber(): HasMany
+    {
+        return $this->hasMany(ContaReceber::class);
+    }
+
+    public function getNomeAttribute(): string
+    {
+        return $this->pessoa?->nome ?? 'Cliente #'.$this->id;
+    }
+
+    public function getTelefoneAttribute(): ?string
+    {
+        return $this->pessoa?->telefone;
+    }
+
+    public function getEmailAttribute(): ?string
+    {
+        return $this->pessoa?->email;
+    }
+
+    public function scopeAtivos($query)
+    {
+        return $query->where('status', 'ativo');
     }
 }

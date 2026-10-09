@@ -1,110 +1,144 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Minha Conta - Barbeiro')
+@section('title', 'Minha agenda')
 
 @section('content')
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title">{{ $funcionario->pessoa->nome }}</h5>
-                    <p class="text-muted">Código: {{ $funcionario->codigo_funcional }}</p>
-                    <p><strong>Cargo:</strong> {{ $funcionario->cargo->nome ?? 'N/A' }}</p>
-                    <p><strong>Admissão:</strong> {{ $funcionario->data_admissao->format('d/m/Y') ?? 'N/A' }}</p>
-                    <p><strong>Salário Base:</strong> R$ {{ number_format($funcionario->salario_base, 2, ',', '.') }}</p>
-                </div>
-            </div>
+    @php
+        $cores = ['pendente' => 'warning', 'confirmado' => 'info', 'concluido' => 'success', 'cancelado' => 'secondary', 'faltou' => 'danger', 'bloqueado' => 'dark'];
+        $bloqueados = $agendamentos->where('status', 'bloqueado')->pluck('hora')->map(fn ($h) => substr((string) $h, 0, 5))->all();
+        $ocupados = $agendamentos->where('status', '!=', 'bloqueado')->pluck('hora')->map(fn ($h) => substr((string) $h, 0, 5))->all();
+        $slots = collect($horariosLivres)->merge($bloqueados)->unique()->sort()->values();
+    @endphp
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h1 class="h4 mb-0"><i class="bi bi-person-badge"></i> Olá, {{ $funcionario->nome }}</h1>
+            <div class="text-muted small">Sua agenda de @diaSemana($data), @data($data)</div>
         </div>
-        
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5>Próximos Atendimentos</h5>
-                    <a href="{{ route('barbeiro.agenda') }}" class="btn btn-sm btn-outline-primary">Ver Agenda Completa</a>
+        <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-secondary" href="{{ route('admin.barbeiro.index', ['data' => $data->copy()->subDay()->format('Y-m-d')]) }}"><i class="bi bi-chevron-left"></i></a>
+            <a class="btn btn-outline-secondary" href="{{ route('admin.barbeiro.index') }}">Hoje</a>
+            <a class="btn btn-outline-secondary" href="{{ route('admin.barbeiro.index', ['data' => $data->copy()->addDay()->format('Y-m-d')]) }}"><i class="bi bi-chevron-right"></i></a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-metrica h-100"><div class="card-body">
+                <div class="text-muted small">Atendimentos concluídos no mês</div>
+                <div class="valor">{{ $atendimentosMes }}</div>
+            </div></div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-metrica h-100"><div class="card-body">
+                <div class="text-muted small">Comissão do mês</div>
+                <div class="valor text-success">@money($totalMes)</div>
+            </div></div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-metrica h-100"><div class="card-body">
+                <div class="text-muted small">A receber (pendente)</div>
+                <div class="valor text-warning">@money($pendente)</div>
+            </div></div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-metrica h-100"><div class="card-body">
+                <div class="text-muted small">Horários livres hoje</div>
+                <div class="valor">{{ count($horariosLivres) }}</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong>Compromissos do dia</strong>
+                    <span class="badge bg-light text-dark border">{{ $agendamentos->where('status', '!=', 'bloqueado')->count() }}</span>
                 </div>
                 <div class="card-body p-0">
-                    @php
-                        $agendamentos = Agendamento::where('funcionario_id', $funcionario->id)
-                            ->whereDate('data', '>=', today())
-                            ->orderBy('data')
-                            ->orderBy('hora')
-                            ->limit(5)
-                            ->get();
-                    @endphp
-                    @if($agendamentos->isEmpty())
-                        <p class="text-muted p-3">Nenhum agendamento futuro.</p>
-                    @else
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Hora</th>
-                                    <th>Cliente</th>
-                                    <th>Serviço</th>
-                                </tr>
-                            </thead>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light"><tr><th>Hora</th><th>Cliente</th><th>Serviços</th><th class="text-end">Valor</th><th>Situação</th></tr></thead>
                             <tbody>
-                                @foreach($agendamentos as $ag)
+                                @forelse ($agendamentos->where('status', '!=', 'bloqueado') as $agendamento)
                                     <tr>
-                                        <td>{{ $ag->data->format('d/m') }} - {{ $ag->hora }}</td>
-                                        <td>{{ $ag->cliente->pessoa->nome }}</td>
-                                        <td>{{ $ag->servicos->first()->servico->nome ?? 'N/A' }}</td>
+                                        <td class="fw-semibold">{{ substr($agendamento->hora, 0, 5) }}<div class="small text-muted">até {{ $agendamento->hora_fim }}</div></td>
+                                        <td>
+                                            {{ $agendamento->cliente_nome_exibicao }}
+                                            <div class="small text-muted">{{ $agendamento->cliente_telefone }}</div>
+                                        </td>
+                                        <td class="small">{{ $agendamento->servicos_texto ?: '—' }}</td>
+                                        <td class="text-end">@money($agendamento->valor_total)</td>
+                                        <td><span class="badge bg-{{ $cores[$agendamento->status] ?? 'secondary' }} badge-status">{{ App\Models\Agendamento::STATUS[$agendamento->status] ?? $agendamento->status }}</span></td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr><td colspan="5" class="text-center text-muted py-4">
+                                        @if (empty($horariosLivres))
+                                            {{ $data->isToday() ? 'A barbearia está fechada hoje ou não há horários configurados.' : 'Nenhum compromisso nesta data.' }}
+                                        @else
+                                            Nenhum compromisso marcado para este dia. Aproveite para divulgar seus horários!
+                                        @endif
+                                    </td></tr>
+                                @endforelse
                             </tbody>
                         </table>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5>Configurar Horários</h5>
-                </div>
-                <div class="card-body">
-                    <p>Defina seus horários de trabalho para cada dia da semana.</p>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#horariosModal">
-                        <i class="bi bi-calendar3"></i> Configurar Disponibilidade
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5>Minhas Comissões</h5>
-                </div>
-                <div class="card-body text-center">
-                    <p class="fs-4 text-success fw-bold">R$ {{ number_format($totalComissoes ?? 0, 2, ',', '.') }}</p>
-                    <p class="text-muted">Total de comissões pagas</p>
-                    <a href="{{ route('barbeiro.comissoes') }}" class="btn btn-outline-primary mt-2">Ver Detalhes</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal de Horários -->
-    <div class="modal fade" id="horariosModal" tabindex="-1" aria-labelledby="horariosModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="horariosModalLabel">Configurar Horários de Trabalho</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Selecione os horários que deseja bloquear para este dia:</p>
-                    <div id="horariosContainer" class="d-flex flex-wrap gap-2">
-                        <!-- Horários serão carregados dinamicamente -->
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="salvarHorarios">Salvar</button>
+                <div class="card-footer bg-white small text-muted">
+                    A recepção é quem confirma e conclui os atendimentos. Aqui você acompanha o seu dia.
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header bg-white"><strong>Bloquear / liberar horários</strong></div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        Marque os horários em que você <strong>não</strong> pode atender (almoço, compromisso pessoal, folga).
+                        Eles somem da agenda e do site. Ao salvar, a lista deste dia é substituída pelo que estiver marcado.
+                    </p>
+
+                    @if ($slots->isEmpty())
+                        <div class="alert alert-light border small mb-0">
+                            Nenhum horário configurado para @data($data). Verifique o horário de funcionamento em
+                            @if (auth()->user()->isAdmin())
+                                <a href="{{ route('admin.configuracoes') }}">Configurações</a>.
+                            @else
+                                Configurações (peça ao administrador).
+                            @endif
+                        </div>
+                    @else
+                        <form action="{{ route('admin.barbeiro.disponibilidade') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="data" value="{{ $data->format('Y-m-d') }}">
+
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @foreach ($slots as $hora)
+                                    <div class="form-check border rounded px-2 py-1 mb-0 {{ in_array($hora, $bloqueados, true) ? 'bg-dark text-white border-dark' : 'bg-light' }}">
+                                        <input class="form-check-input" type="checkbox" name="horarios[]" value="{{ $hora }}"
+                                               id="h-{{ str_replace(':', '', $hora) }}" {{ in_array($hora, $bloqueados, true) ? 'checked' : '' }}>
+                                        <label class="form-check-label small" for="h-{{ str_replace(':', '', $hora) }}">{{ $hora }}</label>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if (! empty($ocupados))
+                                <div class="small text-muted mb-3">
+                                    <i class="bi bi-info-circle"></i> Horários já ocupados por clientes: {{ implode(', ', $ocupados) }}.
+                                </div>
+                            @endif
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-dark btn-sm flex-grow-1" type="submit"><i class="bi bi-check2"></i> Salvar disponibilidade</button>
+                                <button class="btn btn-outline-secondary btn-sm" type="submit" name="limpar" value="1"
+                                        onclick="this.form.querySelectorAll('input[name=\'horarios[]\']').forEach(function (c) { c.checked = false; });">
+                                    <i class="bi bi-eraser"></i> Liberar tudo
+                                </button>
+                            </div>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>

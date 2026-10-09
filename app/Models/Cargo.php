@@ -3,22 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Database\Factories\CargoFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cargo extends Model
 {
-    use HasFactory;
-
     protected $table = 'cargos';
-    protected $fillable = [
-        'nome',
-        'descricao',
-        'codigo',
-    ];
-    
-    public function funcionarios()
+
+    protected $fillable = ['nome', 'codigo', 'descricao', 'ativo'];
+
+    protected function casts(): array
     {
-        return $this->hasMany(Funcionario::class, 'cargo_id');
+        return ['ativo' => 'boolean'];
+    }
+
+    public function funcionarios(): HasMany
+    {
+        return $this->hasMany(Funcionario::class);
     }
 }

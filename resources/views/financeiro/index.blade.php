@@ -1,111 +1,108 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Financeiro - Administrativo')
+@section('title', 'Financeiro')
 
 @section('content')
-    <div class="row">
-        <div class="col-12">
-            <h2>Financeiro</h2>
-            <p>Controle de vendas, compras, comissões e contas.</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h1 class="h4 mb-0"><i class="bi bi-cash-stack"></i> Financeiro</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.financeiro.contas') }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-journals"></i> Contas</a>
+            <a href="{{ route('admin.financeiro.comissoes') }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-percent"></i> Comissões</a>
+            <a href="{{ route('admin.relatorios.financeiro') }}" class="btn btn-dark btn-sm"><i class="bi bi-graph-up"></i> Relatório</a>
         </div>
     </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-6 mb-4">
-            <div class="card border-primary">
-                <div class="card-body text-center">
-                    <h5 class="card-title"><i class="bi bi-cart"></i> Vendas do Dia</h5>
-                    <h2 class="card-text text-primary">R$ {{ number_format($vendasHoje ?? 0, 2, ',', '.') }}</h2>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-metrica h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Vendas hoje</div>
+                    <div class="valor text-success">@money($vendasHoje)</div>
+                    <div class="small text-muted">No mês: @money($vendasMes)</div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 mb-4">
-            <div class="card border-success">
-                <div class="card-body text-center">
-                    <h5 class="card-title"><i class="bi bi-cash-stack"></i> Comissões Pendentes</h5>
-                    <h2 class="card-text text-success">R$ {{ number_format($comissoesPendentes ?? 0, 2, ',', '.') }}</h2>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-metrica h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Compras no mês</div>
+                    <div class="valor text-danger">@money($comprasMes)</div>
+                    <div class="small text-muted">Entrada de mercadoria</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-metrica h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Comissões pendentes</div>
+                    <div class="valor text-warning">@money($comissoesPendentes)</div>
+                    <div class="small text-muted">Pagas no mês: @money($comissoesPagasMes)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-metrica h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Saldo de contas</div>
+                    <div class="valor">@money($aReceber - $aPagar)</div>
+                    <div class="small text-muted">A receber @money($aReceber) · A pagar @money($aPagar)</div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5>Vendas Recentes</h5>
-                    <a href="{{ route('financeiro.vendas') }}" class="btn btn-sm btn-outline-primary">Ver todas</a>
-                </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-white"><strong><i class="bi bi-pie-chart"></i> Vendas do mês por forma de pagamento</strong></div>
                 <div class="card-body p-0">
-                    @if($vendasRecentes->isEmpty())
-                        <p class="text-muted p-3">Nenhuma venda recente.</p>
-                    @else
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr><th>Forma</th><th class="text-center">Vendas</th><th class="text-end">Total</th><th class="text-end">Participação</th></tr>
+                        </thead>
+                        <tbody>
+                            @php $totalGeral = $porFormaPagamento->sum('total') ?: 1; @endphp
+                            @forelse ($porFormaPagamento as $linha)
                                 <tr>
-                                    <th>Data</th>
-                                    <th>Cliente</th>
-                                    <th>Valor</th>
-                                    <th>Status</th>
+                                    <td>{{ $formasPagamento[$linha->forma_pagamento] ?? $linha->forma_pagamento }}</td>
+                                    <td class="text-center">{{ $linha->quantidade }}</td>
+                                    <td class="text-end">@money($linha->total)</td>
+                                    <td class="text-end text-muted">{{ number_format(($linha->total / $totalGeral) * 100, 1) }}%</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($vendasRecentes as $venda)
-                                    <tr>
-                                        <td>{{ $venda->data->format('d/m') }}</td>
-                                        <td>{{ $venda->cliente->pessoa->nome }}</td>
-                                        <td>R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</td>
-                                        <td>
-                                            <span class="badge {{ $venda->status == 'concluida' ? 'bg-success' : 'bg-warning' }}">
-                                                {{ ucfirst($venda->status) }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
+                            @empty
+                                <tr><td colspan="4" class="text-center text-muted py-3">Sem vendas neste mês.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5>Comissões Pendentes</h5>
-                    <a href="{{ route('financeiro.comissoes') }}" class="btn btn-sm btn-outline-primary">Ver todas</a>
+
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong><i class="bi bi-clock-history"></i> Últimas vendas</strong>
+                    <a href="{{ route('admin.vendas.index') }}" class="btn btn-sm btn-outline-secondary">Ver todas</a>
                 </div>
                 <div class="card-body p-0">
-                    @if($comissoesPendentesList->isEmpty())
-                        <p class="text-muted p-3">Nenhuma comissão pendente.</p>
-                    @else
-                        <table class="table table-sm table-hover mb-0">
-                            <thead>
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>#</th><th>Data</th><th>Cliente</th><th>Pagamento</th><th class="text-end">Total</th></tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($ultimasVendas as $venda)
                                 <tr>
-                                    <th>Profissional</th>
-                                    <th>Valor</th>
-                                    <th>Data</th>
-                                    <th>Ação</th>
+                                    <td><a href="{{ route('admin.vendas.show', $venda) }}">#{{ $venda->id }}</a></td>
+                                    <td class="small">@dataHora($venda->data)</td>
+                                    <td class="small">{{ $venda->cliente_nome }}</td>
+                                    <td class="small">{{ $venda->forma_pagamento_label }}</td>
+                                    <td class="text-end fw-semibold">@money($venda->valor_total)</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($comissoesPendentesList as $comissao)
-                                    <tr>
-                                        <td>{{ $comissao->funcionario->pessoa->nome }}</td>
-                                        <td>R$ {{ number_format($comissao->valor, 2, ',', '.') }}</td>
-                                        <td>{{ $comissao->data->format('d/m/Y') }}</td>
-                                        <td>
-                                            <form action="{{ route('financeiro.pagar-comissao', $comissao->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-success">Pagar</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
+                            @empty
+                                <tr><td colspan="5" class="text-center text-muted py-3">Nenhuma venda ainda.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

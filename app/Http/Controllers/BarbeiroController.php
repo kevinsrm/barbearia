@@ -2,85 +2,140 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Funcionario;
 use App\Models\Agendamento;
 use App\Models\Comissao;
+use App\Models\Funcionario;
+use App\Services\AgendaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class BarbeiroController extends Controller
 {
-    public function index()
+    public function __construct(protected AgendaService $agenda) {}
+
+    public function index(Request $request)
     {
-        $funcionario = Funcionario::where('usuario_id', auth()->id())->first();
-        if (!$funcionario) {
-            return redirect('/dashboard')->with('error', 'Você não é um barbeiro.');
+        $funcionario = $this->funcionarioLogado();
+
+        if (! $funcionario) {
+            return redirect()->route('admin.dashboard')->with('error', 'Seu usuário não está vinculado a um profissional.');
         }
-        return view('barbeiro.index', compact('funcionario'));
+
+        $data = $request->filled('data') ? Carbon::parse($request->string('data')) : today();
+
+        return view('barbeiro.index', [
+            'funcionario' => $funcionario,
+            'data' => $data,
+            'agendamentos' => Agendamento::query()
+                ->where('funcionario_id', $funcionario->id)
+                ->doDia($data)
+                ->with(['cliente.pessoa', 'servicos'])
+                ->orderBy('hora')
+                ->get(),
+            'horariosLivres' => $this->agenda->horariosDisponiveis($funcionario, $data),
+            'totalMes' => Comissao::where('funcionario_id', $funcionario->id)
+                ->whereBetween('data', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+                ->sum('valor'),
+            'pendente' => Comissao::where('funcionario_id', $funcionario->id)->pendentes()->sum('valor'),
+            'atendimentosMes' => Agendamento::where('funcionario_id', $funcionario->id)
+                ->where('status', Agendamento::STATUS_CONCLUIDO)
+                ->whereDate('data', '>=', now()->startOfMonth()->toDateString())
+                ->count(),
+        ]);
     }
-    
-    public function agenda()
+
+    public function agenda(Request $request)
     {
-        $funcionario = Funcionario::where('usuario_id', auth()->id())->first();
-        if (!$funcionario) {
-            return redirect('/dashboard')->with('error', 'Você não é um barbeiro.');
+        $funcionario = $this->funcionarioLogado();
+
+        if (! $funcionario) {
+            return redirect()->route('admin.dashboard')->with('error', 'Seu usuário não está vinculado a um profissional.');
         }
-        
-        $agendamentos = Agendamento::where('funcionario_id', $funcionario->id)
-            ->with('cliente', 'servicos')
-            ->orderBy('data', 'asc')
-            ->orderBy('hora', 'asc')
-            ->paginate(10);
-        
-        return view('barbeiro.agenda', compact('agendamentos', 'funcionario'));
+
+        $agendamentos = Agendamento::query()
+            ->where('funcionario_id', $funcionario->id)
+            ->when($request->filled('data'), fn ($q) => $q->whereDate('data', $request->string('data')))
+            ->with(['cliente.pessoa', 'servicos'])
+            ->orderByDesc('data')
+            ->orderBy('hora')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('barbeiro.agenda', ['agendamentos' => $agendamentos, 'funcionario' => $funcionario]);
     }
-    
+
     public function comissoes()
     {
-        $funcionario = Funcionario::where('usuario_id', auth()->id())->first();
-        if (!$funcionario) {
-            return redirect('/dashboard')->with('error', 'Você não é um barbeiro.');
+        $funcionario = $this->funcionarioLogado();
+
+        if (! $funcionario) {
+            return redirect()->route('admin.dashboard')->with('error', 'Seu usuário não está vinculado a um profissional.');
         }
-        
-        $comissoes = Comissao::where('funcionario_id', $funcionario->id)
-            ->orderBy('data', 'desc')
-            ->paginate(10);
-        
-        $totalComissoes = Comissao::where('funcionario_id', $funcionario->id)
-            ->where('status', 'pago')
-            ->sum('valor');
-        
-        return view('barbeiro.comissoes', compact('comissoes', 'totalComissoes', 'funcionario'));
+
+        $comissoes = Comissao::query()
+            ->where('funcionario_id', $funcionario->id)
+            ->with('venda')
+            ->orderByDesc('data')
+            ->paginate(15);
+
+        return view('barbeiro.comissoes', [
+            'comissoes' => $comissoes,
+            'funcionario' => $funcionario,
+            'totalPendentes' => Comissao::where('funcionario_id', $funcionario->id)->pendentes()->sum('valor'),
+            'totalPagas' => Comissao::where('funcionario_id', $funcionario->id)->where('status', 'paga')->sum('valor'),
+            'totalMes' => Comissao::where('funcionario_id', $funcionario->id)
+                ->whereBetween('data', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+                ->sum('valor'),
+        ]);
     }
-    
+
+    /**
+     * Bloqueia/libera horários do próprio profissional em uma data.
+     */
     public function atualizarDisponibilidade(Request $request)
     {
-        $funcionario = Funcionario::where('usuario_id', auth()->id())->first();
-        if (!$funcionario) {
-            return response()->json(['error' => 'Não autorizado'], 403);
+        $funcionario = $this->funcionarioLogado();
+
+        if (! $funcionario) {
+            return response()->json(['message' => 'Não autorizado.'], 403);
         }
-        
-        $request->validate([
+
+        $dados = $request->validate([
             'data' => 'required|date',
-            'horarios' => 'required|array',
+            'horarios' => 'present|array',
+            'horarios.*' => 'date_format:H:i',
         ]);
-        
-        // Limpar agendamentos existentes para este dia e funcionário
-        Agendamento::where('funcionario_id', $funcionario->id)
-            ->whereDate('data', $request->data)
+
+        $data = Carbon::parse($dados['data'])->toDateString();
+
+        Agendamento::query()
+            ->where('funcionario_id', $funcionario->id)
+            ->whereDate('data', $data)
+            ->where('status', Agendamento::STATUS_BLOQUEADO)
             ->delete();
-        
-        // Criar novos agendamentos como indisponíveis (bloqueados)
-        foreach ($request->horarios as $hora) {
+
+        foreach (array_unique($dados['horarios'] ?? []) as $hora) {
             Agendamento::create([
-                'cliente_id' => null,
                 'funcionario_id' => $funcionario->id,
-                'data' => $request->data,
+                'data' => $data,
                 'hora' => $hora,
-                'status' => 'bloqueado',
-                'observacoes' => 'Horário bloqueado pelo barbeiro',
+                'duracao' => (int) config('barbearia.agenda.intervalo', 30),
+                'status' => Agendamento::STATUS_BLOQUEADO,
+                'origem' => 'barbeiro',
+                'observacoes' => 'Horário bloqueado pelo profissional',
+                'valor_total' => 0,
             ]);
         }
-        
-        return response()->json(['success' => true]);
+
+        $mensagem = 'Disponibilidade atualizada para '.Carbon::parse($data)->format('d/m/Y').'.';
+
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'message' => $mensagem])
+            : back()->with('success', $mensagem);
+    }
+
+    protected function funcionarioLogado(): ?Funcionario
+    {
+        return Funcionario::query()->where('usuario_id', auth()->id())->first();
     }
 }

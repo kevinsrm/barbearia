@@ -2,9 +2,17 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/laravel",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "Sistema completo de gestão para barbearias: site público com agendamento online, painel administrativo, PDV, estoque, comissões e financeiro.",
+    "keywords": [
+        "barbearia",
+        "salao",
+        "agendamento",
+        "laravel",
+        "pdv",
+        "comissoes",
+        "gestao"
+    ],
+    "license": "proprietary",
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
@@ -33,16 +41,13 @@
     },
     "scripts": {
         "setup": [
-            "composer install",
+            "composer install --no-dev --optimize-autoloader",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
-            "npm install",
-            "npm run build"
+            "@php artisan migrate --force --seed"
         ],
         "dev": [
-            "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "@php artisan serve"
         ],
         "test": [
             "@php artisan config:clear --ansi",
@@ -65,6 +70,15 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "instalar": [
+            "@php artisan barbearia:install"
+        ],
+        "diagnostico": [
+            "@php artisan barbearia:diagnostico"
+        ],
+        "demo": [
+            "@php artisan migrate:fresh --seed --force"
         ]
     },
     "extra": {
@@ -82,5 +96,10 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Barbearia Sistema"
+        }
+    ]
 }

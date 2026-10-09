@@ -1,99 +1,63 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Minha Agenda - Barbeiro')
+@section('title', 'Meus agendamentos')
 
 @section('content')
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Minha Agenda</h2>
-        <a href="{{ route('barbeiro.index') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
-        </a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h1 class="h4 mb-0"><i class="bi bi-calendar-week"></i> Meus agendamentos</h1>
+        <a href="{{ route('admin.barbeiro.index') }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-calendar-day"></i> Ver hoje</a>
     </div>
-    
+
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form action="{{ route('admin.barbeiro.agenda') }}" method="GET" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1" for="data">Filtrar por data</label>
+                    <input type="date" class="form-control form-control-sm" id="data" name="data" value="{{ request('data') }}">
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button class="btn btn-sm btn-dark" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+                    <a href="{{ route('admin.barbeiro.agenda') }}" class="btn btn-sm btn-outline-secondary">Todos</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @php $cores = ['pendente' => 'warning', 'confirmado' => 'info', 'concluido' => 'success', 'cancelado' => 'secondary', 'faltou' => 'danger', 'bloqueado' => 'dark']; @endphp
+
     <div class="card">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5>Agendamentos</h5>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
-                    <i class="bi bi-printer"></i> Imprimir
-                </button>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Data</th><th>Hora</th><th>Cliente</th><th>Serviços</th><th class="text-end">Valor</th><th>Situação</th></tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($agendamentos as $agendamento)
+                            <tr>
+                                <td class="small">@data($agendamento->data)<div class="text-muted">@diaSemana($agendamento->data)</div></td>
+                                <td class="fw-semibold">{{ substr($agendamento->hora, 0, 5) }}</td>
+                                <td>
+                                    {{ $agendamento->cliente_nome_exibicao }}
+                                    <div class="small text-muted">{{ $agendamento->cliente_telefone }}</div>
+                                </td>
+                                <td class="small text-muted">{{ $agendamento->servicos_texto ?: '—' }}</td>
+                                <td class="text-end">@money($agendamento->valor_total)</td>
+                                <td>
+                                    <span class="badge bg-{{ $cores[$agendamento->status] ?? 'secondary' }} badge-status">
+                                        {{ App\Models\Agendamento::STATUS[$agendamento->status] ?? $agendamento->status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="text-center text-muted py-4">Nenhum agendamento encontrado.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="card-body p-0">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Hora</th>
-                        <th>Cliente</th>
-                        <th>Serviços</th>
-                        <th>Valor</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($agendamentos as $agendamento)
-                        <tr>
-                            <td>{{ $agendamento->data->format('d/m/Y') }}</td>
-                            <td>{{ $agendamento->hora }}</td>
-                            <td>{{ $agendamento->cliente->pessoa->nome }}</td>
-                            <td>
-                                @foreach($agendamento->servicos as $item)
-                                    <span class="badge bg-light text-dark mb-1 d-block">
-                                        {{ $item->servico->nome }} (R$ {{ number_format($item->servico->valor, 2, ',', '.') }})
-                                    </span>
-                                @endforeach
-                            </td>
-                            <td>R$ {{ number_format($agendamento->valor_total, 2, ',', '.') }}</td>
-                            <td>
-                                <span class="badge {{ $agendamento->status == 'confirmado' ? 'bg-success' : ($agendamento->status == 'concluido' ? 'bg-primary' : 'bg-warning') }}">
-                                    {{ ucfirst($agendamento->status) }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($agendamento->status == 'confirmado')
-                                    <button class="btn btn-sm btn-success" onclick="concluirAgendamento({{ $agendamento->id }})">
-                                        <i class="bi bi-check-circle"></i> Concluir
-                                    </button>
-                                @endif
-                                <form action="{{ route('agendamentos.destroy', $agendamento->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza?');">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-            {{ $agendamentos->links() }}
-        </div>
+        @if ($agendamentos->hasPages())
+            <div class="card-footer bg-white">{{ $agendamentos->links() }}</div>
+        @endif
     </div>
-    
-    @push('scripts')
-        <script>
-            function concluirAgendamento(id) {
-                if (confirm('Marcar este agendamento como concluído?')) {
-                    fetch('/api/agendamentos/' + id, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                        },
-                        body: JSON.stringify({
-                            status: 'concluido'
-                        })
-                    }).then(response => {
-                        if (response.ok) {
-                            alert('Agendamento concluído com sucesso!');
-                            location.reload();
-                        }
-                    });
-                }
-            }
-        </script>
-    @endpush
 @endsection
