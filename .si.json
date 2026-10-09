@@ -1,0 +1,14 @@
+{
+  "plugin": "org.smartide.plugin.framework.php.laravel",
+  "run": "composer install && if [ ! -f .env ]; then cp .env.example .env && php artisan key:generate --force; fi && if [ ! -f database/database.sqlite ]; then touch database/database.sqlite && php artisan migrate --force; fi && php artisan serve --host=0.0.0.0 --port=8000",
+  "intelligence": {
+    ".json": {
+      "enabled": true,
+      "run": "vscode-json-language-server --stdio"
+    },
+    ".php": {
+      "enabled": true,
+      "run": "intelephense --stdio"
+    }
+  }
+}
