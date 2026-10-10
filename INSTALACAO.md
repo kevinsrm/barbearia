@@ -271,6 +271,7 @@ arquivos.
 | "No application encryption key has been specified" | `.env` sem `APP_KEY` | `php artisan key:generate` ou rode o instalador de novo |
 | "could not find driver" | Extensão do banco desligada | Ative `pdo_mysql`/`pdo_sqlite` no Passo 1 |
 | "Base table or view not found: usuarios" | Migrations não rodaram | `php artisan migrate --force` (ou "Recriar as tabelas" no instalador) |
+| `Unknown column 'pessoa_id' in 'INSERT INTO'` | Esquema antigo sem a relação com `pessoas` | Atualize os arquivos e rode `php artisan migrate --force`; depois repita o comando que criou o administrador |
 | "table usuarios already exists" | Banco com tabelas de uma instalação antiga | Marque "Recriar as tabelas" no instalador ou rode `migrate:fresh` |
 | Erro 419 ao salvar um formulário | Sessão não está sendo gravada | Deixe `SESSION_DRIVER=database` (padrão) ou dê permissão `775` em `storage/framework/sessions` |
 | Sai do login sozinho | Idem, ou `SESSION_LIFETIME` muito baixo | Ajuste `SESSION_LIFETIME=120` (minutos) |
