@@ -131,6 +131,14 @@ Acesso: <http://localhost:8000> · Painel: <http://localhost:8000/admin>
 | `php artisan migrate --seed` (dev) | `ADMIN_EMAIL` do `.env` (padrão `admin@barbearia.com`) | `ADMIN_PASSWORD` (padrão `admin123`) |
 | Profissional de demonstração | `joao@barbearia.exemplo` | `barbeiro123` |
 
+Para criar a conta administrativa específica de desenvolvimento (`admin@eu.com` / `12345678`), execute:
+
+```bash
+php artisan db:seed --class=AdminUserSeeder
+```
+
+Esse seeder é executado explicitamente e não faz parte do `DatabaseSeeder` padrão. Se executado novamente, redefine a senha para `12345678`. Use apenas em desenvolvimento ou troque a senha imediatamente; não mantenha essa credencial em produção.
+
 > **Troque a senha do administrador assim que entrar** e nunca deixe `APP_DEBUG=true` em produção.
 
 Criou o administrador errado ou esqueceu a senha?
@@ -235,7 +243,7 @@ app/
 config/barbearia.php      horários, comissões, permissões e regras do negócio
 database/
   migrations/             22 migrations idempotentes (não estouram se a tabela já existir)
-  seeders/                DatabaseSeeder (base) e DemoSeeder (dados de exemplo)
+  seeders/                DatabaseSeeder, AdminUserSeeder (uso explícito) e DemoSeeder (dados de exemplo)
 public/                   único diretório que deve ficar exposto (index.php + .htaccess)
 resources/views/          Blade: site público, painel, área do barbeiro e instalador
 routes/web.php            todas as rotas (site, auth, admin, barbeiro, install)
