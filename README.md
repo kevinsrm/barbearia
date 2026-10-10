@@ -306,6 +306,7 @@ Sem SSH: rode o instalador novamente marcando **"Recriar as tabelas"** — apagu
 | "No application encryption key has been specified" | `.env` sem `APP_KEY` | `php artisan key:generate` ou use o instalador |
 | "could not find driver" | Extensão do banco desligada no PHP | Ative `pdo_mysql` (ou `pdo_sqlite`) no cPanel |
 | "table ... already exists" | Banco com tabelas de outra versão | Use "Recriar as tabelas" no instalador ou `migrate:fresh` |
+| "Field 'name' doesn't have a default value" (erro 1364) | Tabela `usuarios` antiga, com a coluna `name` obrigatória | `php artisan migrate --force` (copia os nomes para `nome` e remove a coluna) ou "Recriar as tabelas" no instalador |
 | Erro 404 em todas as páginas | Domínio não aponta para `public/` e o `.htaccess` não foi lido | Veja o passo 3 do [INSTALACAO.md](INSTALACAO.md) |
 | Saiu do login sozinho / erro 419 | Sessão sem permissão de escrita | Use `SESSION_DRIVER=database` ou dê escrita em `storage/framework/sessions` |
 
