@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Pessoa;
 use App\Models\Usuario;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cria ou redefine explicitamente a conta administrativa de desenvolvimento.
@@ -19,31 +20,33 @@ class AdminUserSeeder extends Seeder
 
     public function run(): void
     {
-        $pessoa = Pessoa::firstOrCreate(
-            ['email' => self::EMAIL],
-            [
+        DB::transaction(function () {
+            $pessoa = Pessoa::firstOrCreate(
+                ['email' => self::EMAIL],
+                [
+                    'nome' => self::NOME,
+                    'tipo_pessoa' => 'usuario',
+                    'ativo' => true,
+                ]
+            );
+
+            $pessoa->update([
                 'nome' => self::NOME,
                 'tipo_pessoa' => 'usuario',
                 'ativo' => true,
-            ]
-        );
+            ]);
 
-        $pessoa->update([
-            'nome' => self::NOME,
-            'tipo_pessoa' => 'usuario',
-            'ativo' => true,
-        ]);
-
-        Usuario::updateOrCreate(
-            ['email' => self::EMAIL],
-            [
-                'pessoa_id' => $pessoa->id,
-                'nome' => self::NOME,
-                'password' => self::SENHA,
-                'role' => Usuario::ROLE_ADMIN,
-                'ativo' => true,
-            ]
-        );
+            Usuario::updateOrCreate(
+                ['email' => self::EMAIL],
+                [
+                    'pessoa_id' => $pessoa->id,
+                    'nome' => self::NOME,
+                    'password' => self::SENHA,
+                    'role' => Usuario::ROLE_ADMIN,
+                    'ativo' => true,
+                ]
+            );
+        });
 
         $this->command?->info('Administrador criado/atualizado: '.self::EMAIL);
     }

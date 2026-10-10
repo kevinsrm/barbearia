@@ -8,6 +8,7 @@ use App\Models\ProdutoCategoria;
 use App\Models\ServicoCategoria;
 use App\Models\Usuario;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -53,25 +54,41 @@ class DatabaseSeeder extends Seeder
 
     protected function criarAdministrador(): void
     {
-        $email = strtolower((string) env('ADMIN_EMAIL', 'admin@barbearia.com'));
-        $nome = (string) env('ADMIN_NOME', 'Administrador');
+        $email = strtolower(trim((string) env('ADMIN_EMAIL', 'admin@barbearia.com')));
+        $nome = trim((string) env('ADMIN_NOME', 'Administrador')) ?: 'Administrador';
         $senha = (string) env('ADMIN_PASSWORD', 'admin123');
 
-        $pessoa = Pessoa::firstOrCreate(
-            ['email' => $email],
-            ['nome' => $nome, 'tipo_pessoa' => 'usuario', 'ativo' => true]
-        );
+        DB::transaction(function () use ($email, $nome, $senha) {
+            $pessoa = Pessoa::firstOrCreate(
+                ['email' => $email],
+                ['nome' => $nome, 'tipo_pessoa' => 'usuario', 'ativo' => true]
+            );
 
-        Usuario::firstOrCreate(
-            ['email' => $email],
-            [
+            $pessoa->update([
+                'nome' => $nome,
+                'tipo_pessoa' => 'usuario',
+                'ativo' => true,
+            ]);
+
+            // Garante que a conta configurada seja de fato admin mesmo se já
+            // existia como cliente. Senhas existentes não são redefinidas em
+            // cada execução de `db:seed`.
+            $usuario = Usuario::firstOrNew(['email' => $email]);
+            $novoUsuario = ! $usuario->exists;
+
+            $usuario->fill([
                 'pessoa_id' => $pessoa->id,
                 'nome' => $nome,
-                'password' => $senha,
                 'role' => Usuario::ROLE_ADMIN,
                 'ativo' => true,
-            ]
-        );
+            ]);
+
+            if ($novoUsuario) {
+                $usuario->password = $senha;
+            }
+
+            $usuario->save();
+        });
 
         $this->command?->info('Administrador: '.$email.' (senha padrão: '.$senha.') — troque após o primeiro acesso.');
     }
