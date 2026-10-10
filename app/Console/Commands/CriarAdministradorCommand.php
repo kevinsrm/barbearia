@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Pessoa;
 use App\Models\Usuario;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class CriarAdministradorCommand extends Command
 {
@@ -27,23 +28,25 @@ class CriarAdministradorCommand extends Command
             $gerada = true;
         }
 
-        $pessoa = Pessoa::firstOrCreate(
-            ['email' => $email],
-            ['nome' => $nome, 'tipo_pessoa' => 'usuario', 'ativo' => true]
-        );
+        $usuario = DB::transaction(function () use ($email, $nome, $senha) {
+            $pessoa = Pessoa::firstOrCreate(
+                ['email' => $email],
+                ['nome' => $nome, 'tipo_pessoa' => 'usuario', 'ativo' => true]
+            );
 
-        $pessoa->update(['nome' => $nome, 'tipo_pessoa' => 'usuario', 'ativo' => true]);
+            $pessoa->update(['nome' => $nome, 'tipo_pessoa' => 'usuario', 'ativo' => true]);
 
-        $usuario = Usuario::updateOrCreate(
-            ['email' => $email],
-            [
-                'pessoa_id' => $pessoa->id,
-                'nome' => $nome,
-                'password' => $senha,
-                'role' => Usuario::ROLE_ADMIN,
-                'ativo' => true,
-            ]
-        );
+            return Usuario::updateOrCreate(
+                ['email' => $email],
+                [
+                    'pessoa_id' => $pessoa->id,
+                    'nome' => $nome,
+                    'password' => $senha,
+                    'role' => Usuario::ROLE_ADMIN,
+                    'ativo' => true,
+                ]
+            );
+        });
 
         $this->components->info('Administrador salvo: '.$usuario->email);
 
