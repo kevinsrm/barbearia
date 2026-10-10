@@ -1,66 +1,98 @@
-@extends('layouts.app')
+@extends('layouts.site')
 
-@section('title', 'Barbearia - Corte de Cabelo e Barba')
+@section('title', 'Início')
 
 @section('content')
-    <div class="container mt-5">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h1>Bem-vindo à <span class="text-primary">Barbearia</span></h1>
-                <p class="lead mt-4">O melhor lugar para cuidar do seu visual. Profissionais experientes, ambiente aconchegante e horários flexíveis.</p>
-                <div class="mt-4">
-                    <a href="/agendamento" class="btn btn-primary btn-lg me-3">Agendar Agora</a>
-                    <a href="/servicos" class="btn btn-outline-secondary btn-lg">Ver Serviços</a>
+    <section class="hero py-5">
+        <div class="container py-4">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h1 class="display-5 fw-bold">Seu estilo, no horário que você quiser.</h1>
+                    <p class="lead mt-3 mb-4 text-white-50">
+                        Agende online em menos de um minuto e escolha o profissional de sua preferência.
+                        Corte, barba e tratamentos com atendimento pontual.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('site.agendamento') }}" class="btn btn-marca btn-lg px-4">
+                            <i class="bi bi-calendar-check"></i> Agendar horário
+                        </a>
+                        <a href="{{ route('site.servicos') }}" class="btn btn-outline-light btn-lg px-4">
+                            Ver serviços e preços
+                        </a>
+                    </div>
+                    <div class="mt-4 d-flex flex-wrap gap-4 small text-white-50">
+                        <span><i class="bi bi-clock text-marca"></i> {{ config('barbearia.agenda.abertura') }} às {{ config('barbearia.agenda.fechamento') }}</span>
+                        <span><i class="bi bi-telephone text-marca"></i> {{ config('barbearia.telefone') }}</span>
+                        <span><i class="bi bi-geo-alt text-marca"></i> {{ config('barbearia.cidade') }}</span>
+                    </div>
+                </div>
+                <div class="col-lg-5 d-none d-lg-block text-center">
+                    <i class="bi bi-scissors" style="font-size: 12rem; color: rgba(255,255,255,.12);"></i>
                 </div>
             </div>
-            <div class="col-md-6 text-center">
-                <img src="https://via.placeholder.com/600x400?text=Barbearia+Image" alt="Barbearia" class="img-fluid rounded">
-            </div>
         </div>
-    </div>
+    </section>
 
-    <div class="container mt-5">
-        <h2 class="text-center mb-4">Nossos Serviços</h2>
-        <div class="row">
-            @foreach($servicos as $servico)
-                <div class="col-md-4 mb-4">
-                    <div class="card shadow-sm border-0 h-100">
-                        <div class="card-body text-center">
-                            <div class="mb-3">
-                                <i class="bi bi-scissors fs-1 text-primary"></i>
-                            </div>
-                            <h5 class="card-title">{{ $servico->nome }}</h5>
-                            <p class="card-text text-muted">{{ $servico->descricao }}</p>
-                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                <span class="text-primary fw-bold">R$ {{ number_format($servico->valor, 2, ',', '.') }}</span>
-                                <span class="text-muted"><i class="bi bi-clock"></i> {{ $servico->duracao }} min</span>
+    <section class="container py-5">
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div>
+                <h2 class="h3 mb-1">Serviços mais pedidos</h2>
+                <p class="text-muted mb-0">Valores atualizados e duração média de cada atendimento.</p>
+            </div>
+            <a href="{{ route('site.servicos') }}" class="btn btn-outline-secondary btn-sm">Ver todos</a>
+        </div>
+
+        @if ($destaques->isEmpty())
+            <div class="alert alert-light border text-center py-5">
+                <i class="bi bi-scissors fs-1 d-block mb-2 text-muted"></i>
+                Ainda não há serviços cadastrados. Volte em breve!
+            </div>
+        @else
+            <div class="row g-3">
+                @foreach ($destaques as $servico)
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card card-servico h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="card-title mb-1">{{ $servico->nome }}</h5>
+                                    <span class="badge bg-light text-dark border">{{ $servico->duracao }} min</span>
+                                </div>
+                                @if ($servico->categoria)
+                                    <div class="small text-muted mb-2"><i class="bi bi-tag"></i> {{ $servico->categoria->nome }}</div>
+                                @endif
+                                <p class="card-text text-muted small">{{ $servico->descricao ?: 'Atendimento realizado por profissionais experientes.' }}</p>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <strong class="text-marca fs-5">@money($servico->valor)</strong>
+                                    <a href="{{ route('site.agendamento', ['servico' => $servico->id]) }}" class="btn btn-sm btn-marca">Agendar</a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
+                @endforeach
+            </div>
+        @endif
+    </section>
 
-    <div class="container mt-5 bg-light py-5">
-        <div class="row">
-            <div class="col-md-4 text-center">
-                <i class="bi bi-clock fs-2 text-primary mb-3"></i>
-                <h4>Atendimento</h4>
-                <p>Seg-Sex: 09:00 - 20:00</p>
-                <p>Sábados: 09:00 - 18:00</p>
-            </div>
-            <div class="col-md-4 text-center">
-                <i class="bi bi-award fs-2 text-primary mb-3"></i>
-                <h4>Profissionais</h4>
-                <p>Equipe qualificada e experiente</p>
-            </div>
-            <div class="col-md-4 text-center">
-                <i class="bi bi-telephone fs-2 text-primary mb-3"></i>
-                <h4>Contato</h4>
-                <p>(11) 1234-5678</p>
-                <p>contato@barbearia.com</p>
+    <section class="bg-white py-5 border-top">
+        <div class="container">
+            <h2 class="h3 text-center mb-4">Como funciona</h2>
+            <div class="row g-4 text-center">
+                <div class="col-md-4">
+                    <i class="bi bi-calendar-plus fs-1 text-marca"></i>
+                    <h5 class="mt-2">1. Escolha o horário</h5>
+                    <p class="text-muted small mb-0">Selecione o serviço, o profissional e o horário livre que preferir.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="bi bi-person-check fs-1 text-marca"></i>
+                    <h5 class="mt-2">2. Confirmação rápida</h5>
+                    <p class="text-muted small mb-0">A barbearia confirma seu agendamento e você recebe o lembrete.</p>
+                </div>
+                <div class="col-md-4">
+                    <i class="bi bi-star fs-1 text-marca"></i>
+                    <h5 class="mt-2">3. Atendimento pontual</h5>
+                    <p class="text-muted small mb-0">Chegou, foi atendido. Sem fila e sem espera desnecessária.</p>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 @endsection

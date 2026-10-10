@@ -2,49 +2,79 @@
 
 namespace App\Models;
 
-use App\Models\Pessoa;
-use App\Models\Usuario;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Database\Factories\FuncionarioFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Funcionario extends Model
 {
-    use HasFactory;
-
     protected $table = 'funcionarios';
+
     protected $fillable = [
-        'pessoa_id',
-        'usuario_id',
-        'cargo_id',
-        'codigo_funcional',
-        'data_admissao',
-        'salario_base',
-        'ativo',
+        'pessoa_id', 'usuario_id', 'cargo_id', 'codigo_funcional',
+        'data_admissao', 'salario_base', 'percentual_comissao', 'ativo',
     ];
 
-    public function pessoa()
+    protected function casts(): array
     {
-        return $this->belongsTo(Pessoa::class, 'pessoa_id');
+        return [
+            'data_admissao' => 'date',
+            'salario_base' => 'decimal:2',
+            'percentual_comissao' => 'decimal:2',
+            'ativo' => 'boolean',
+        ];
     }
-    
-    public function usuario()
+
+    public function pessoa(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'usuario_id');
+        return $this->belongsTo(Pessoa::class);
     }
-    
-    public function cargo()
+
+    public function usuario(): BelongsTo
     {
-        return $this->belongsTo(Cargo::class, 'cargo_id');
+        return $this->belongsTo(Usuario::class);
     }
-    
-    public function agendamentos()
+
+    public function cargo(): BelongsTo
     {
-        return $this->hasMany(Agendamento::class, 'funcionario_id');
+        return $this->belongsTo(Cargo::class);
     }
-    
-    public function comissoes()
+
+    public function agendamentos(): HasMany
     {
-        return $this->hasMany(Comissao::class, 'funcionario_id');
+        return $this->hasMany(Agendamento::class);
+    }
+
+    public function vendas(): HasMany
+    {
+        return $this->hasMany(Venda::class);
+    }
+
+    public function comissoes(): HasMany
+    {
+        return $this->hasMany(Comissao::class);
+    }
+
+    public function getNomeAttribute(): string
+    {
+        return $this->pessoa?->nome ?? 'Funcionário #'.$this->id;
+    }
+
+    public function getTelefoneAttribute(): ?string
+    {
+        return $this->pessoa?->telefone;
+    }
+
+    public function scopeAtivos($query)
+    {
+        return $query->where('ativo', true);
+    }
+
+    /** Percentual de comissão efetivo (o do funcionário ou o padrão da configuração). */
+    public function percentualComissaoEfetivo(): float
+    {
+        $proprio = (float) $this->percentual_comissao;
+
+        return $proprio > 0 ? $proprio : (float) config('barbearia.comissao_padrao', 0);
     }
 }

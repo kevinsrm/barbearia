@@ -1,7 +1,19 @@
 <?php
 
 use Illuminate\Support\Str;
-use Pdo\Mysql;
+
+/*
+| Caminho do banco SQLite. Aceita caminho absoluto ou relativo à pasta do
+| sistema (ex.: "database/database.sqlite"), que é o que o instalador grava.
+| Assim funciona em qualquer hospedagem, independente do diretório atual.
+*/
+$sqliteDatabase = (string) env('DB_DATABASE', '');
+$sqliteDatabase = match (true) {
+    $sqliteDatabase === '' => database_path('database.sqlite'),
+    $sqliteDatabase === ':memory:' => ':memory:',
+    preg_match('#^(/|[A-Za-z]:[\\\\/])#', $sqliteDatabase) === 1 => $sqliteDatabase,
+    default => base_path($sqliteDatabase),
+};
 
 return [
 
@@ -35,7 +47,7 @@ return [
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
-            'database' => env('DB_DATABASE', 'barbearia'),
+            'database' => $sqliteDatabase,
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,

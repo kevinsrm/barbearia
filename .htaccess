@@ -1,0 +1,47 @@
+# ======================================================================
+#  Sistema de Barbearia — .htaccess da RAIZ
+# ======================================================================
+#  O Laravel deve ser acessado pela pasta "public". Este arquivo existe
+#  para os casos em que NÃO é possível apontar o domínio direto para
+#  /public (a situação mais comum em hospedagem compartilhada).
+#
+#  Melhor opção (se o seu painel permitir): aponte o "Document Root" do
+#  domínio para a pasta public/ — aí este arquivo nem é usado.
+#
+#  Como funciona: qualquer endereço é reescrito para dentro de public/.
+#  Ex.: seudominio.com.br/admin  ->  seudominio.com.br/public/admin
+# ======================================================================
+
+# Não mostra a listagem de arquivos das pastas
+Options -Indexes
+
+# ----------------------------------------------------------------------
+# Protege arquivos sensíveis mesmo que a reescrita abaixo não funcione.
+# Sem isso, um visitante poderia baixar o .env (senha do banco!) digitando
+# seudominio.com.br/.env no navegador.
+# ----------------------------------------------------------------------
+<FilesMatch "^(\.env|\.env\.[A-Za-z0-9]+|\.git.*|artisan|composer\.(json|lock)|package\.json|vite\.config\.js|phpunit\.xml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Bloqueia o acesso às pastas internas do sistema
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor)($|/) - [F,L]
+
+    # Manda tudo para a pasta public/
+    RewriteCond %{REQUEST_URI} !^/?public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    RedirectMatch 302 ^/(app|bootstrap|config|database|resources|routes|storage|tests|vendor)/.*$ /
+    RedirectMatch 302 ^/(?!public/)(.*)$ /public/$1
+</IfModule>

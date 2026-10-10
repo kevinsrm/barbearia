@@ -1,113 +1,75 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Relatórios - Administrativo')
+@section('title', 'Relatórios')
 
 @section('content')
-    <div class="row">
+    <h1 class="h4 mb-3"><i class="bi bi-graph-up"></i> Relatórios</h1>
+
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6"><i class="bi bi-cash-stack text-success"></i> Financeiro</h2>
+                    <p class="text-muted small">Vendas, compras, comissões e lucro por período.</p>
+                    <a href="{{ route('admin.relatorios.financeiro') }}" class="btn btn-sm btn-outline-dark">Abrir relatório</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6"><i class="bi bi-box text-primary"></i> Estoque e produtos</h2>
+                    <p class="text-muted small">Saldo atual, valor de custo e alerta de estoque mínimo.</p>
+                    <a href="{{ route('admin.relatorios.produtos') }}" class="btn btn-sm btn-outline-dark">Abrir relatório</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6"><i class="bi bi-percent text-warning"></i> Comissões por profissional</h2>
+                    <p class="text-muted small">Quanto cada barbeiro gerou e quanto ainda está pendente.</p>
+                    <a href="{{ route('admin.relatorios.comissoes') }}" class="btn btn-sm btn-outline-dark">Abrir relatório</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6"><i class="bi bi-people text-info"></i> Clientes</h2>
+                    <p class="text-muted small">Ranking de clientes por valor gasto no período.</p>
+                    <a href="{{ route('admin.relatorios.clientes') }}" class="btn btn-sm btn-outline-dark">Abrir relatório</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6"><i class="bi bi-gift text-danger"></i> Aniversariantes do mês</h2>
+                    <p class="text-muted small">Lista para ações de fidelização e parabéns.</p>
+                    <a href="{{ route('admin.relatorios.aniversariantes') }}" class="btn btn-sm btn-outline-dark">Abrir relatório</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h2 class="h6"><i class="bi bi-arrow-left-right text-secondary"></i> Movimentações de estoque</h2>
+                    <p class="text-muted small">Entradas, saídas e ajustes com origem e responsável.</p>
+                    <a href="{{ route('admin.relatorios.movimentacoes') }}" class="btn btn-sm btn-outline-dark">Abrir relatório</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
         <div class="col-12">
-            <h2>Relatórios</h2>
-            <p>Gerencie relatórios e análises do seu negócio.</p>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-4 mb-4">
-            <div class="card border-primary text-center">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-box-seam"></i> Produtos</h5>
-                    <p class="card-text">Relatório de estoque, categorias e valores</p>
-                    <a href="{{ route('relatorios.produtos') }}" class="btn btn-outline-primary mt-2">Acessar</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-4">
-            <div class="card border-success text-center">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-currency-dollar"></i> Financeiro</h5>
-                    <p class="card-text">DRE simplificado, lucro e movimentações</p>
-                    <a href="{{ route('relatorios.financeiro') }}" class="btn btn-outline-success mt-2">Acessar</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4 mb-4">
-            <div class="card border-info text-center">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-people"></i> Comissões</h5>
-                    <p class="card-text">Comissões por barbeiro e histórico</p>
-                    <a href="{{ route('relatorios.comissoes') }}" class="btn btn-outline-info mt-2">Acessar</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5>Contas a Pagar/Receber</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Quantidade</th>
-                                <th>Total</th>
-                                <th>Ver</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><span class="badge bg-danger">Pagar</span></td>
-                                <td>{{ $contasPagarCount ?? 0 }}</td>
-                                <td>R$ {{ number_format($contasPagarTotal ?? 0, 2, ',', '.') }}</td>
-                                <td><a href="{{ route('relatorios.contas') }}" class="btn btn-sm btn-outline-primary">Ver</a></td>
-                            </tr>
-                            <tr>
-                                <td><span class="badge bg-success">Receber</span></td>
-                                <td>{{ $contasReceberCount ?? 0 }}</td>
-                                <td>R$ {{ number_format($contasReceberTotal ?? 0, 2, ',', '.') }}</td>
-                                <td><a href="{{ route('relatorios.contas') }}" class="btn btn-sm btn-outline-primary">Ver</a></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5>Aniversariantes do Mês</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Data Nasc.</th>
-                                <th>Ver</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if($aniversariantes->isEmpty())
-                                <tr><td colspan="3" class="text-muted">Nenhum aniversariante este mês.</td></tr>
-                            @else
-                                @foreach($aniversariantes as $aniv)
-                                    <tr>
-                                        <td>{{ $aniv->nome }}</td>
-                                        <td>{{ $aniv->data_nascimento->format('d/m') }}</td>
-                                        <td>
-                                            <a href="{{ route('pessoas.edit', $aniv->id) }}" class="btn btn-sm btn-outline-primary">Ver</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
+            <div class="alert alert-light border small mb-0">
+                <strong>Resumo rápido:</strong>
+                {{ $contasPagarCount }} conta(s) a pagar (@money($contasPagarTotal)) ·
+                {{ $contasReceberCount }} a receber (@money($contasReceberTotal)) ·
+                {{ $totalClientes }} cliente(s) ·
+                {{ $totalProdutos }} produto(s), {{ $estoqueBaixo }} com estoque baixo.
             </div>
         </div>
     </div>

@@ -1,69 +1,77 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Relatório de Produtos - Relatórios')
+@section('title', 'Relatório de estoque')
 
 @section('content')
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Relatório de Produtos</h2>
-        <div class="d-flex gap-2">
-            <a href="{{ route('relatorios.index') }}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar
-            </a>
-        </div>
-    </div>
-    
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5>Valor Total em Estoque</h5>
-                <span class="badge bg-success">R$ {{ number_format($totalEstoqueValor, 2, ',', '.') }}</span>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h1 class="h4 mb-0"><i class="bi bi-box"></i> Estoque e produtos</h1>
+        <form action="{{ route('admin.relatorios.produtos') }}" method="GET" class="d-flex gap-2">
+            <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" name="estoque_baixo" value="1" id="baixo" {{ request('estoque_baixo') ? 'checked' : '' }} onchange="this.form.submit()">
+                <label class="form-check-label small" for="baixo">Somente estoque baixo</label>
             </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.print()"><i class="bi bi-printer"></i></button>
+        </form>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card card-metrica"><div class="card-body">
+                <div class="text-muted small">Itens em estoque</div>
+                <div class="valor">{{ $totalItens }}</div>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-metrica"><div class="card-body">
+                <div class="text-muted small">Valor a custo</div>
+                <div class="valor">@money($totalCusto)</div>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-metrica"><div class="card-body">
+                <div class="text-muted small">Valor potencial de venda</div>
+                <div class="valor text-success">@money($totalVenda)</div>
+            </div></div>
         </div>
     </div>
-    
+
     <div class="card">
-        <div class="card-body">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nome</th>
-                        <th>Categoria</th>
-                        <th>Estoque</th>
-                        <th>Valor Unitário</th>
-                        <th>Valor Total</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($produtos as $produto)
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td>{{ $produto->codigo }}</td>
-                            <td>{{ $produto->nome }}</td>
-                            <td>{{ $produto->categoria->nome ?? 'N/A' }}</td>
-                            <td>
-                                @php
-                                    $estoque = $produto->estoque ?? 0;
-                                    $minimo = $produto->estoque_minimo;
-                                    if ($estoque <= $minimo) {
-                                        echo '<span class="badge bg-danger">' . $estoque . ' (Crítico)</span>';
-                                    } else {
-                                        echo '<span class="badge bg-success">' . $estoque . '</span>';
-                                    }
-                                @endphp
-                            </td>
-                            <td>R$ {{ number_format($produto->preco_venda, 2, ',', '.') }}</td>
-                            <td>R$ {{ number_format(($produto->preco_venda * ($produto->estoque ?? 0)), 2, ',', '.') }}</td>
-                            <td>
-                                <span class="badge {{ $produto->ativo ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ $produto->ativo ? 'Ativo' : 'Inativo' }}
-                                </span>
-                            </td>
+                            <th>Produto</th><th>Categoria</th><th>Código</th>
+                            <th class="text-center">Saldo</th><th class="text-center">Mínimo</th>
+                            <th class="text-end">Custo</th><th class="text-end">Venda</th>
+                            <th class="text-end">Total custo</th><th>Situação</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
-            {{ $produtos->links() }}
+                    </thead>
+                    <tbody>
+                        @forelse ($produtos as $produto)
+                            <tr>
+                                <td>{{ $produto->nome }}</td>
+                                <td class="small text-muted">{{ $produto->categoria->nome ?? '—' }}</td>
+                                <td class="small text-muted">{{ $produto->codigo ?: '—' }}</td>
+                                <td class="text-center fw-semibold">{{ $produto->estoque }}</td>
+                                <td class="text-center small">{{ $produto->estoque_minimo }}</td>
+                                <td class="text-end small">@money($produto->preco_custo)</td>
+                                <td class="text-end small">@money($produto->preco_venda)</td>
+                                <td class="text-end">@money((float) $produto->preco_custo * (int) $produto->estoque)</td>
+                                <td>
+                                    @if ($produto->estoque_baixo)
+                                        <span class="badge bg-danger badge-status">Repor</span>
+                                    @else
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Ok</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="9" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 @endsection
