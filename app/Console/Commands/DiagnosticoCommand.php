@@ -19,6 +19,22 @@ class DiagnosticoCommand extends Command
 
     protected $description = 'Verifica ambiente, banco, migrations e as principais telas do sistema';
 
+    /** Colunas que o sistema usa em `usuarios`; qualquer outra veio de outra versão. */
+    private const COLUNAS_USUARIOS = [
+        'id',
+        'pessoa_id',
+        'nome',
+        'email',
+        'password',
+        'role',
+        'ativo',
+        'email_verified_at',
+        'ultimo_acesso',
+        'remember_token',
+        'created_at',
+        'updated_at',
+    ];
+
     protected $erros = 0;
 
     public function handle(): int
@@ -50,6 +66,8 @@ class DiagnosticoCommand extends Command
         foreach ($tabelasEsperadas as $tabela) {
             $this->verificar('tabela '.$tabela, Schema::hasTable($tabela));
         }
+
+        $this->verificarColunasDeUsuarios();
 
         Artisan::call('migrate:status');
         $status = Artisan::output();
@@ -99,6 +117,62 @@ class DiagnosticoCommand extends Command
             $this->line('    <fg=yellow>'.$e->getMessage().'</>');
 
             return false;
+        }
+    }
+
+    /**
+     * Bancos criados antes do sistema (ou à mão, no phpMyAdmin) podem ter a tabela
+     * `usuarios` com colunas de outra versão — a clássica `name` obrigatória e sem
+     * valor padrão. O sistema grava `nome`, então o MySQL derruba todo INSERT com o
+     * erro 1364 ("Field 'name' doesn't have a default value").
+     */
+    protected function verificarColunasDeUsuarios(): void
+    {
+        if (! Schema::hasTable('usuarios')) {
+            return;
+        }
+
+        try {
+            $colunas = Schema::getColumns('usuarios');
+        } catch (Throwable $e) {
+            $this->line('  <fg=yellow>!</> não consegui ler as colunas de usuarios: '.$e->getMessage().'</>');
+
+            return;
+        }
+
+        $bloqueiam = [];
+        $extras = [];
+
+        foreach ($colunas as $coluna) {
+            $nome = (string) ($coluna['name'] ?? '');
+
+            if ($nome === '' || in_array(strtolower($nome), self::COLUNAS_USUARIOS, true)) {
+                continue;
+            }
+
+            // Chave primária, auto incremento e coluna gerada não bloqueiam o INSERT.
+            $obrigatoria = empty($coluna['nullable'])
+                && ($coluna['default'] ?? null) === null
+                && empty($coluna['auto_increment'])
+                && empty($coluna['generation']['type']);
+
+            if ($obrigatoria) {
+                $bloqueiam[] = $nome;
+            } else {
+                $extras[] = $nome;
+            }
+        }
+
+        // Colunas extras que aceitam NULL não atrapalham o sistema: são só aviso.
+        $this->verificar('tabela usuarios sem colunas antigas que impedem novos cadastros', $bloqueiam === []);
+
+        if ($bloqueiam !== []) {
+            $this->line('    <fg=red>'.implode(', ', $bloqueiam).'</> é obrigatória e não tem valor padrão: nenhum cadastro, login ou seed funciona (erro 1364).');
+            $this->line('    <fg=yellow>Atualize os arquivos e rode: php artisan migrate --force</>');
+        }
+
+        if ($extras !== []) {
+            $this->line('    <fg=yellow>!</> colunas que o sistema não usa em usuarios: '.implode(', ', $extras).'</>');
         }
     }
 
